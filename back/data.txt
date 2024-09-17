@@ -1,0 +1,69 @@
+        # Service codes mapping
+        services_mapping = {
+            "5W": "Colissimo Eco France",
+            "5X": "Envoi recommandé d'une boite aux lettres",
+            "5Y": "Envoi simple d'une boite aux lettres",
+            "6A": "Colissimo Domicile - Sans signature",
+            "6C": "Colissimo Domicile - Avec signature",
+            "6G": "Colissimo - J + 1",
+            "6H": "Colissimo - Point Retrait – A La Poste",
+            "6M": "Colissimo - Point Retrait – en relais Pickup ou en consigne Pickup Station",
+            "6Q": "Colissimo Domicile - Sans signature",
+            "6R": "Colissimo - Point Retrait – A La Poste",
+            "6W": "Colissimo - Point Retrait – en relais Pickup ou en consigne Pickup Station",
+            "7Q": "Colissimo Domicile - Avec signature (Outre-Mer)",
+            "7R": "Colissimo Retour International",
+            "8G": "Envoi simple professionnel",
+            "8K": "Colis entrant depuis l'international",
+            "8L": "Envoi simple professionnel",
+            "8N": "Envoi simple particulier",
+            "8P": "Contre signature",
+            "8Q": "Colissimo Domicile - Sans signature (Outre-Mer)",
+            "8R": "Colissimo Retour France",
+            "8U": "Envoi recommandé particulier",
+            "8V": "Envoi recommandé professionnel",
+            "9L": "Colissimo Domicile - Sans signature",
+            "9V": "Colissimo Domicile - Avec signature",
+            "9W": "Colissimo Eco Outre-Mer"
+        }
+
+        # Tarifs par service
+        tarifs_mapping = {
+            "6A": tarif_sans_signature,
+            "6C": tarif_avec_signature,
+            "6M": tarif_boite_lettre_pickup,
+            "6H": tarif_la_poste_pickup,
+            "8R": tarif_boite_lettre_pickup
+        }
+
+        # Poids de référence
+        reference_weights = [0.25, 0.50, 0.75, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+
+
+        services_mapping = {
+            "5W",
+            "5X",
+            "5Y",
+            "6A",
+            "6C",
+            "6G",
+            "6H",
+            "6M",
+            "6Q",
+            "6R",
+            "6W",
+            "7Q",
+            "7R",
+            "8G",
+            "8K",
+            "8L",
+            "8N",
+            "8P",
+            "8Q",
+            "8R",
+            "8U",
+            "8V",
+            "9L",
+            "9V",
+            "9W"
+        }

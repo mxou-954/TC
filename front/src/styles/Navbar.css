@@ -1,0 +1,37 @@
+/* Styles de base pour la navbar */
+.navbar {
+    background-color: #333; /* Couleur de fond */
+    padding: 1rem; /* Espacement interne */
+    position: fixed; /* Navbar fixe en haut de la page */
+    width: 100%; /* Prend toute la largeur de l'écran */
+    top: 0;
+    left: 0;
+    z-index: 1000; /* S'assurer que la navbar est au-dessus d'autres éléments */
+  }
+  
+  /* Styles pour la liste des liens */
+  .navbar-links {
+    list-style-type: none; /* Supprime les puces des listes */
+    display: flex; /* Affichage en ligne des liens */
+    justify-content: flex-end; /* Aligne les liens à gauche */
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Styles pour chaque élément de la liste */
+  .navbar-links li {
+    margin-right: 4rem; /* Espacement entre les liens */
+  }
+  
+  /* Styles pour les liens */
+  .navbar-links li a {
+    color: white; /* Couleur du texte des liens */
+    text-decoration: none; /* Supprime le soulignement par défaut */
+    font-size: 1.2rem; /* Taille du texte */
+  }
+  
+  /* Style au survol */
+  .navbar-links li a:hover {
+    text-decoration: underline; /* Souligne le lien au survol */
+    color: #f0f0f0; /* Change la couleur au survol */
+  }
