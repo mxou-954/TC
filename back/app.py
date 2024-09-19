@@ -3,6 +3,8 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import os
 import pandas as pd
+from openpyxl import load_workbook
+
 
 app = Flask(__name__)
 CORS(app)  # Permet les requêtes cross-origin
@@ -248,7 +250,7 @@ def fusionExecl():
 
 
         extracted_data.rename(columns={
-        'Poids jusqu\'à': 'Tranche de poids (kg)',
+        'Poids jusqu\'à': 'Tranche de poids 2 (kg)',
         'sans signature': '6A',
         'avec signature': '6C',
         'en boîte aux lettres': '6M',
@@ -258,24 +260,91 @@ def fusionExecl():
         logging.debug(f"Colonnes après renommage : {extracted_data.columns.tolist()}")
 
         # Définir le chemin du fichier de sortie
-        output_file_path = os.path.join(UPLOAD_FOLDER, 'extracted_tarifs.xlsx')
+        temp_output_file_path = os.path.join(UPLOAD_FOLDER, 'extracted_tarifs.xlsx')
 
-        # Écrire les données extraites dans une nouvelle feuille
-        with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+        # Écrire les données extraites dans une feuille Excel temporaire
+        with pd.ExcelWriter(temp_output_file_path, engine='xlsxwriter') as writer:
             extracted_data.to_excel(writer, sheet_name='Tarifs_Extraits', index=False)
 
-        logging.debug(f"Les colonnes spécifiées ont été extraites et sauvegardées dans {output_file_path}")
+        logging.debug(f"Les colonnes spécifiées ont été extraites et sauvegardées dans {temp_output_file_path}")
+
+        # Maintenant, ouvrir le fichier existant "grouped_BACARDI CPTE 986737.xlsx"
+        grouped_file_path = os.path.join(UPLOAD_FOLDER, 'grouped_BACARDI CPTE 986737.xlsx')
+
+            # Lire le fichier existant
+        with pd.ExcelWriter(grouped_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            # Charger les données de la feuille temporaire dans le fichier existant
+            extracted_data.to_excel(writer, sheet_name='Tarifs_Extraits', index=False)
+
+        logging.debug(f"Les données ont été ajoutées à {grouped_file_path} dans une nouvelle feuille 'Tarifs_Extraits'")
+
+        # Ouvrir le fichier Excel pour la répartition des colonnes
+        extracted_file_path = os.path.join(UPLOAD_FOLDER, 'grouped_BACARDI CPTE 986737.xlsx')
+        df = pd.read_excel(extracted_file_path, sheet_name='Tarifs_Extraits')
+
+        df['Tranche de poids 2 (kg)'] = df['Tranche de poids 2 (kg)'].astype(str).str.replace(' kg', '', regex=False)
+        df['Tranche de poids 2 (kg)'] = df['Tranche de poids 2 (kg)'].str.replace(r'[^0-9.,]', '', regex=True)
+        df['Tranche de poids 2 (kg)'] = df['Tranche de poids 2 (kg)'].str.replace(',', '.')
+        df['Tranche de poids 2 (kg)'] = pd.to_numeric(df['Tranche de poids 2 (kg)'], errors='coerce')
+
+        # Extraire la colonne "Tranche de poids (kg)"
+        colonne_poid_ref = df[['Tranche de poids 2 (kg)']]
+
+        # Charger le fichier Excel avec openpyxl pour modifier les feuilles existantes
+        book = load_workbook(extracted_file_path)
+
+        # Utiliser pd.ExcelWriter avec l'option 'openpyxl' pour conserver les feuilles existantes
+        with pd.ExcelWriter(extracted_file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            services_mapping = [
+                "5W", "5X", "5Y", "6A", "6C", "6G", "6H", "6M", "6Q", "6R", "6W",
+                "7Q", "7R", "8G", "8K", "8L", "8N", "8P", "8Q", "8R", "8U", "8V",
+                "9L", "9V", "9W"
+            ]
+
+            for number in services_mapping: 
+                sheet_name = f'{number}_AO'
+                try:
+                    # Lire la feuille existante
+                    df_destination = pd.read_excel(extracted_file_path, sheet_name=sheet_name)
+                    
+                    # Ajouter la colonne "Tranche de poids (kg)" à la feuille
+                    df_combined = pd.concat([df_destination, colonne_poid_ref], axis=1)
+                    
+                    # Vérifier si une colonne portant le nom du numéro de service (par exemple, '6A') existe dans la feuille 'Tarifs_Extraits'
+                    if number in df.columns:
+                        colonne_service = df[[number]]
+                        df_combined = pd.concat([df_combined, colonne_service], axis=1)
 
 
 
+                        extracted_data.rename(columns={
+                        'Tranche de poids (kg)': 'Tranche de poids (kg)',
+                        "Qté d'envois": "Qté d'envois",
+                        'Coût unitaire': 'Coût unitaire',
+                        'Total': 'Total',
+                        'Tranche de poids 2 (kg)': 'Tranche de poids 2 (kg)',
+                        '6C': 'Nouveau prix'
+                        }, inplace=True)
+
+                    
+                    # Sauvegarder la feuille modifiée dans le fichier
+                    df_combined.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                except ValueError:
+                    # Si la feuille n'existe pas, on le signale et on continue
+                    print(f"La feuille {sheet_name} n'existe pas dans le fichier.")
+                except Exception as e:
+                    print(f"Erreur inattendue lors du traitement de la feuille {sheet_name} : {e}")
 
 
+        logging.debug(f"Colonnes réparties et ajoutées aux feuilles spécifiques dans {extracted_file_path}")
 
-        return jsonify({"message": "Extraction réussie", "file_path": output_file_path}), 200
+        return jsonify({"message": "Extraction réussie et ajoutée au fichier existant", "file_path": grouped_file_path}), 200
 
     except Exception as e:
         logging.error(f"Erreur lors du traitement du fichier : {e}")
         return jsonify({"message": "Erreur lors du traitement du fichier"}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)
