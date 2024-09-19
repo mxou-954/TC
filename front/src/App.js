@@ -8,6 +8,8 @@ import Navbar from "./components/Pages/navbar";
 import Connexion from "./components/Pages/connexion";
 import Inscription from "./components/Pages/inscription";
 import Messagerie from "./components/Pages/messagerie";
+import Forum from "./components/Pages/forum";
+import Profile from "./components/Pages/profile";
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
           <Route path="/Connexion" element={<Connexion />} />
           <Route path="/Inscription" element={<Inscription />} />
           <Route path="/messagerie" element={<Messagerie />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </Router>
     </div>

@@ -205,5 +205,77 @@ def download_file(file_name):
     return send_from_directory(app.config['./uploads'], file_name, as_attachment=True)
 
 
+@app.route('/api/transporteurTarif', methods=['POST'])
+def fusionExecl():
+    logging.debug("Réception de la requête POST")
+
+    file = request.files.get('transporteurTarif')
+    if not file:
+        logging.error("Aucun fichier reçu")
+        return jsonify({"message": "Aucun fichier reçu"}), 400
+
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    logging.debug(f"Sauvegarde du fichier à : {file_path}")
+    file.save(file_path)
+
+    file_name = 'grouped_' + file.filename  # Ajoute un préfixe au nom de fichier original
+    output_file_path = os.path.join(UPLOAD_FOLDER, file_name)  # Crée le chemin complet
+
+
+    try:
+        logging.debug("Lecture du fichier Excel en sautant les lignes inutiles")
+
+        # Lire le fichier Excel, en sautant les 7 premières lignes pour que la lecture commence à la ligne 8
+        df = pd.read_excel(file_path, skiprows=7)
+
+        # Afficher les colonnes actuelles pour vérifier la structure
+        logging.debug(f"Colonnes avant nettoyage : {df.columns.tolist()}")
+
+        # Extraction des colonnes B, E, G, I, K avec les lignes spécifiques
+        extracted_data = pd.DataFrame()
+
+        # Extraire les colonnes une à une
+        extracted_data['Poids jusqu\'à'] = df.iloc[2:35, 1]
+        extracted_data['sans signature'] = df.iloc[2:35, 4]
+        extracted_data['avec signature'] = df.iloc[2:35, 6]
+        extracted_data['en boîte aux lettres'] = df.iloc[2:35, 8]
+        extracted_data['à La Poste en consigne'] = df.iloc[2:35, 10]
+
+        # Supprimer les lignes vides
+        extracted_data.dropna(how='all', inplace=True)
+
+        logging.debug(f"Les données extraites sont : {extracted_data}")
+
+
+        extracted_data.rename(columns={
+        'Poids jusqu\'à': 'Tranche de poids (kg)',
+        'sans signature': '6A',
+        'avec signature': '6C',
+        'en boîte aux lettres': '6M',
+        'à La Poste en consigne': '6H'
+        }, inplace=True)
+
+        logging.debug(f"Colonnes après renommage : {extracted_data.columns.tolist()}")
+
+        # Définir le chemin du fichier de sortie
+        output_file_path = os.path.join(UPLOAD_FOLDER, 'extracted_tarifs.xlsx')
+
+        # Écrire les données extraites dans une nouvelle feuille
+        with pd.ExcelWriter(output_file_path, engine='xlsxwriter') as writer:
+            extracted_data.to_excel(writer, sheet_name='Tarifs_Extraits', index=False)
+
+        logging.debug(f"Les colonnes spécifiées ont été extraites et sauvegardées dans {output_file_path}")
+
+
+
+
+
+
+        return jsonify({"message": "Extraction réussie", "file_path": output_file_path}), 200
+
+    except Exception as e:
+        logging.error(f"Erreur lors du traitement du fichier : {e}")
+        return jsonify({"message": "Erreur lors du traitement du fichier"}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)
