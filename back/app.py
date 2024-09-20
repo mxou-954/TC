@@ -253,7 +253,7 @@ def fusionExecl():
         'Poids jusqu\'à': 'Tranche de poids 2 (kg)',
         'sans signature': '6A',
         'avec signature': '6C',
-        'en boîte aux lettres': '6M',
+        'en boîte aux lettres': '8R',
         'à La Poste en consigne': '6H'
         }, inplace=True)
 
@@ -332,48 +332,50 @@ def fusionExecl():
                 except Exception as e:
                     print(f"Erreur inattendue lors du traitement de la feuille {sheet_name} : {e}")
 
-            for number in services_mapping: 
-                sheet_name = f'{number}_AO'
-                try:
-                    # Lire la feuille existante
-                    df_destination = pd.read_excel(extracted_file_path, sheet_name=sheet_name)
-                    df = df_destination.copy()
+        for number in services_mapping: 
+            sheet_name = f'{number}_AO'
+            try:
+                # Lire la feuille existante
+                df_destinations = pd.read_excel(extracted_file_path, sheet_name=sheet_name)
+                df_destinations.columns = df_destinations.columns.str.strip()
+                
+                print("Ouverture du sheet : " + sheet_name)
+                print("Colonnes disponibles dans df_destinations :", df_destinations.columns)
 
+                # Création d'une copie des colonnes
+                tranchePoids2 = df_destinations['Tranche de poids 2 (kg)'].copy()
+                numbers = df_destinations[number].copy()
+                print(f"Nous avons copié {numbers}")
 
-                    print("Ouverture du sheet : " + sheet_name)
+                # Création d'un masque pour identifier les valeurs
+                mask = tranchePoids2.isin(df_destinations['Tranche de poids (kg)'])
 
-                    # Création d'une copie des colonnes 'Tranche de poids 2 (kg)' et '6A'
-                    tranchePoids2 = df['Tranche de poids 2 (kg)'].copy()
-                    numbers = df[number].copy()
-                    print(f"Nous avons copié {numbers}")
+                # Appliquer le masque
+                tranchePoids2.loc[~mask] = pd.NA
+                numbers.loc[~mask] = pd.NA
 
-                    # Création d'un masque pour identifier les valeurs de 'Tranche de poids 2 (kg)' présentes dans 'Tranche de poids (kg)'
-                    mask = tranchePoids2.isin(df['Tranche de poids (kg)'])
+                # Supprimer les lignes avec des NaN
+                tranchePoids2.dropna(inplace=True)
+                numbers.dropna(inplace=True)
 
-                    # Appliquer le masque aux colonnes 'Tranche de poids 2 (kg)' et '6A'
-                    tranchePoids2.loc[~mask] = pd.NA  # Remplacer par des valeurs manquantes là où il n'y a pas de correspondance
-                    numbers.loc[~mask] = pd.NA
+                # Mettre à jour le DataFrame original
+                df_destinations['Tranche de poids 2 (kg)'] = tranchePoids2
+                df_destinations[number] = numbers
 
-                    # Supprimer les lignes où 'Tranche de poids 2 (kg)' ou '6A' contiennent des NaN
-                    tranchePoids2.dropna(inplace=True)
-                    numbers.dropna(inplace=True)
+                # Afficher les lignes modifiées pour débogage
+                result = df_destinations[['Tranche de poids (kg)', 'Tranche de poids 2 (kg)', number]]
+                print(result)
 
-                    # Remettre les colonnes modifiées dans le DataFrame original
-                    df['Tranche de poids 2 (kg)'] = tranchePoids2
-                    df[number] = numbers
+                # Sauvegarder les modifications
+                with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                    df_destinations.to_excel(writer, sheet_name="Filtered_TranchePoids", index=False)
 
-                    # Afficher les lignes modifiées pour débogage
-                    result = df[['Tranche de poids (kg)', 'Tranche de poids 2 (kg)', number]]
-                    print(result)
-
-                    # Sauvegarder les modifications dans le fichier Excel existant
-                    with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-                        df.to_excel(writer, sheet_name="Filtered_TranchePoids", index=False)
+                    print({"status": "success", "message": "Fichier Excel traité et sauvegardé avec succès."})
 
                     print({"status": "success", "message": "Fichier Excel traité et sauvegardé avec succès."})
 
                     # Étape 1 : Copier les colonnes parfaites vers un autre sheet
-                    df_perfect = df[['Tranche de poids (kg)', "Qté d'envois", 'Coût unitaire', 'Total']].copy()
+                    df_perfect = df_destinations[['Tranche de poids (kg)', "Qté d'envois", 'Coût unitaire', 'Total']].copy()
 
                     # Sauvegarder ces colonnes parfaites dans un autre sheet sans écraser les colonnes
                     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
@@ -382,10 +384,10 @@ def fusionExecl():
                     print({"status": "success", "message": "Colonnes parfaites copiées dans un autre sheet."})
 
                     # Étape 2 : Renommer les colonnes 'Tranche de poids 2 (kg)' et '6A'
-                    df.rename(columns={'Tranche de poids 2 (kg)': 'TP new', number: 'new price'}, inplace=True)
+                    df_destinations.rename(columns={'Tranche de poids 2 (kg)': 'TP new', number: 'new price'}, inplace=True)
 
                     # Supprimer les NaN dans les colonnes renommées
-                    df_cleaned = df[['TP new', 'new price']].dropna()
+                    df_cleaned = df_destinations[['TP new', 'new price']].dropna()
 
                     # Étape 3 : Copier les colonnes renommées sans NaN dans le même sheet où les autres colonnes ont été sauvegardées
                     with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='overlay') as writer:
@@ -393,10 +395,9 @@ def fusionExecl():
 
                     print({"status": "success", "message": "Colonnes renommées et sans NaN copiées avec succès."})
 
-
-                except ValueError:
+            except ValueError:
                     # Si la feuille n'existe pas, on le signale et on continue
-                    print(f"La feuille {sheet_name} n'existe pas dans le fichier.")
+                print(f"La feuille {sheet_name} n'existe pas dans le fichier.")
 
 
 
